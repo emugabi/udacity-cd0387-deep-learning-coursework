@@ -15,7 +15,6 @@ import argparse
 import json
 import logging
 import os
-import boto3
 import io
 import sys
 
@@ -25,6 +24,11 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
+
+#import subprocess as sb 
+#import sys 
+
+#sb.call([sys.executable, "-m", "pip", "install", "smdebug"]) 
 
 import smdebug.pytorch as smd
 
