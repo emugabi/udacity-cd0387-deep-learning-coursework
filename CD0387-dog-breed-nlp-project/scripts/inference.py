@@ -15,6 +15,28 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
+
+def net():
+    '''
+    TODO: Complete this function that initializes your model
+          Remember to use a pretrained model
+    '''
+    model = models.resnet18(pretrained = True)
+
+    for param in model.parameters():
+        param.requires_grad = False
+
+    num_features = model.fc.in_features
+    logger.info(f"Model output features {model.fc.in_features}")
+    num_classes = 133
+    model.fc = nn.Sequential(nn.Linear(num_features, 256), 
+                              nn.ReLU(),
+                              nn.Linear(256,  num_classes),
+                              nn.LogSoftmax(dim=1)
+                            )
+    
+    return model
+
 # Define the model architecture - this should match the architecture of the trained model
 def model_fn(model_dir):
     """
@@ -23,24 +45,30 @@ def model_fn(model_dir):
     logger.info(f" inference >>>>> Loading model from {model_dir}")
 
     # Instantiate the model
-    model = models.resnet18(pretrained=True)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = net().to(device)
 
     # Update the fully connected layer to match the output features (num_classes)
     # Ensure that the number of features matches the model's output during training
-    num_classes = 133 
-    model.fc = nn.Linear(model.fc.in_features, num_classes)
+    #num_classes = 133 
+    #model.fc = nn.Linear(model.fc.in_features, num_classes)
+    #model.fc = nn.Sequential(nn.Linear(num_features, 256), 
+    #                          nn.ReLU(),
+    #                          nn.Linear(256,  num_classes),
+    #                          nn.LogSoftmax(dim=1)
+    #                        )
 
-    logger.info(f"Model output features {model.fc.in_features}")
+    
 
     # Load the saved model weights
     model_path = f"{model_dir}/model.pth"
     try:
-        checkpoint = torch.load(model_path, map_location=torch.device('cpu'))
+        checkpoint = torch.load(model_path, map_location=device)
         #model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-        checkpoint = {k: v for k, v in checkpoint.items() if k.startswith('conv')}
+        #checkpoint = {k: v for k, v in checkpoint.items() if k.startswith('conv')}
 
         # Load the state dictionary into the model
-        model.load_state_dict(checkpoint, strict=False)
+        model.load_state_dict(checkpoint)
         logger.info("Model loaded successfully.")
     except Exception as e:
         logger.exception(f"Error loading the model from {model_path}.")
@@ -60,9 +88,10 @@ def input_fn(request_body, request_content_type):
             image = Image.open(io.BytesIO(request_body))
             logger.info("Image opened successfully.")
             transform = transforms.Compose([
-                transforms.Resize([224, 224]),
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
             image_tensor = transform(image).unsqueeze(0)
             logger.info("Image transformed successfully.")
