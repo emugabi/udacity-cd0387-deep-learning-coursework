@@ -7,6 +7,8 @@ from PIL import Image
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+# Reference https://sagemaker-examples.readthedocs.io/en/latest/frameworks/pytorch/get_started_mnist_deploy.html
+
 # Set up logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -48,18 +50,6 @@ def model_fn(model_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = net().to(device)
 
-    # Update the fully connected layer to match the output features (num_classes)
-    # Ensure that the number of features matches the model's output during training
-    #num_classes = 133 
-    #model.fc = nn.Linear(model.fc.in_features, num_classes)
-    #model.fc = nn.Sequential(nn.Linear(num_features, 256), 
-    #                          nn.ReLU(),
-    #                          nn.Linear(256,  num_classes),
-    #                          nn.LogSoftmax(dim=1)
-    #                        )
-
-    
-
     # Load the saved model weights
     model_path = f"{model_dir}/model.pth"
     try:
@@ -82,11 +72,11 @@ def input_fn(request_body, request_content_type):
     """
     Preprocess the input data.
     """
-    logger.info("In input_fn.")
-    if request_content_type == 'application/x-image':
+    logger.info("Received request with input data")
+    if request_content_type == 'image/jpeg':
         try:
             image = Image.open(io.BytesIO(request_body))
-            logger.info("Image opened successfully.")
+            logger.info("Image deserialised successfully.")
             transform = transforms.Compose([
                 transforms.Resize(256),
                 transforms.CenterCrop(224),
@@ -94,7 +84,7 @@ def input_fn(request_body, request_content_type):
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
             image_tensor = transform(image).unsqueeze(0)
-            logger.info("Image transformed successfully.")
+            logger.info("Image transformed into tensor.")
             return image_tensor
         except Exception as e:
             logger.exception("Error processing the input image.")
@@ -107,45 +97,43 @@ def predict_fn(input_data, model):
     """
     Make the prediction.
     """
-    logger.info("In predict_fn.")
+    logger.info("Starting prediction...")
     try:
         with torch.no_grad():
             prediction = model(input_data)
-        logger.info("Prediction made successfully.")
+        logger.info("Prediction completed.")
         return prediction
     except Exception as e:
-        logger.exception("Error during prediction.")
+        logger.exception("Error making prediction.")
         raise e
 
 def output_fn(prediction, content_type):
     """
     Postprocess and return the prediction.
     """
-    logger.info("In output_fn.")
+    logger.info("Processing prediction results.")
     if content_type == 'application/json':
         try:
-            response = prediction.cpu().numpy().tolist()  # Ensure prediction is on CPU
-            logger.info("Output generated successfully.")
+            response = prediction.cpu().numpy().tolist()  
+            logger.info("Returned prediction array.")
             return response
         except Exception as e:
-            logger.exception("Error postprocessing the prediction.")
+            logger.exception("Error returning prediction array.")
             raise e
     else:
         logger.error(f"Unsupported content type: {content_type}")
         raise ValueError(f"Unsupported content type: {content_type}")
 
-# This is the handler function
+
 def handler(data, context):
     """
     This function is called when the endpoint is invoked.
     """
-    logger.info("Handler invoked.")
-    if context.request_content_type == 'application/x-image':
+    if context.request_content_type == 'image/jpeg':
         try:
             data = input_fn(data, context.request_content_type)
             prediction = predict_fn(data, context.model)
             response = output_fn(prediction, context.accept_header)
-            logger.info("Handler completed successfully.")
             return response
         except Exception as e:
             logger.exception("Error handling the request.")
