@@ -10,26 +10,30 @@ The project files are run under SageMaker Studio.
 The provided image [dataset](https://s3-us-west-1.amazonaws.com/udacity-aind/dog-project/dogImages.zip) containing 6680 training images was used. 
 
 ### Access
-In order to run multiple training jobs while maintaining access to the image dataset, the files were uploaded to S3 bucket `s3://sagemaker-us-east-1-733710257842/sagemaker/cd0387-project-resnet-18` 
+In order to run multiple training jobs while maintaining access to the image dataset, the files were uploaded to S3 bucket `s3://sagemaker-us-east-1-733710257842/cd0387-dog-breed` 
 
 ## Hyperparameter Tuning
 This project used the ResNet-18 model for solving the image classification task. ResNet-18 runs efficiently under limited computing resources, while being able to classify rich features representations from a big image data sets. 
 
 The following hyperparameter ranges were applied;
-[alt-text-hp-table](images/hp-table.png)
+| HPO        | Value Range                                |   |   |   |
+|------------|--------------------------------------------|---|---|---|
+| lr         | ContinuousParameter(0.001, 0.1)            |   |   |   |
+| batch-size | CategoricalParameter([8, 16, 32, 64, 128]) |   |   |   |
+| epochs     | IntegerParameter(2, 10)                    |   |   |   |
 
 #### Training Jobs
 
 Training Job
-[alt-text-completed-training-job](images/training-job-1.png)
+![alt-text-completed-training-job](./images/training_job_1.png)
 
 Log Metrics during training
-[alt-text-training-metrics](images/training-metrics-1.png)
+![alt-text-training-metrics](./images/training_job_logs.png)
 
 #### Tuning Phase 
 
 Hyperparameters 
-[alt-text-hpo](images/hpo.png)
+![alt-text-hpo](images/best_hyperparameters.png)
 
 
 Best Hyper Parameters from all your training jobs
@@ -57,11 +61,12 @@ profiler_config = ProfilerConfig(
 
 ### Results
 
-[alt-text-profiling](image/profiling-1.png)
-**TODO**: What are the results/insights did you get by profiling/debugging your model?
-
-**TODO** Remember to provide the profiler html/pdf file in your submission.
-
+![alt-text-profiling](images/profiling_1.png)
+Summary Highlights from the profiling report;
+1. GPU is underutilised at only 14%. (Might require switching to smaller instance)
+2. Batchsize was tool small to utilize available GPU. 
+3. The most expensive operator on the CPUs was "aten::conv2d".
+4. Dataloaders only ran 1 worker in parallel, yet the CPU had 4 cores available.
 
 ## Model Deployment
 
