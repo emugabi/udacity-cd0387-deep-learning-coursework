@@ -4,7 +4,16 @@ The project files contain a proposed machine learning workflow for a deep Convol
 
 
 ## Project Set Up and Installation
-The project files are run under SageMaker Studio. 
+The project files are run under SageMaker Studio with pytorch and python3 dependenices. 
+
+`scripts/hpo.py` - Hyperparameter Tuning
+
+`srcipts/train_model.py` - Model training logic
+
+`scripts/inference.py` - Data pre-processor for ru
+nning realtime inferences
+
+`requirements.txt` - All dependencies required to run the source code
 
 ## Dataset
 The provided image [dataset](https://s3-us-west-1.amazonaws.com/udacity-aind/dog-project/dogImages.zip) containing 6680 training images was used. 
@@ -21,6 +30,13 @@ The following hyperparameter ranges were applied;
 | lr         | ContinuousParameter(0.001, 0.1)            |   |   |   |
 | batch-size | CategoricalParameter([8, 16, 32, 64, 128]) |   |   |   |
 | epochs     | IntegerParameter(2, 10)                    |   |   |   |
+
+
+#### Results from HPO Job #1
+![hpo-job-1](./images/hpo_job_1.png)
+
+#### Results from HPO Job #2 (Best)
+![hpo-job-1](./images/hpo_job_2.png)
 
 #### Training Jobs
 
@@ -72,7 +88,7 @@ Summary Highlights from the profiling report;
 
 The saved model data from the previous training job is used to create a PyTorchModel, along with the `entry_point` scripts to pre-process the image data during inference. Next, an instance is configured to run the PyTorchModel and consequently serve up an endpoint.
 
-```
+```python
 pytorch_model = PyTorchModel(
     model_data=estimator.model_data,
     role=role,
@@ -86,14 +102,22 @@ pytorch_model = PyTorchModel(
 
 To make a prediction, the image file is parsed as bytes, along with a strict "ContentType" to ensure the right file format is processed. In response, the endpoint will return an array list of 133 predictions. 
 
-**TODO**: Give an overview of the deployed model and instructions on how to query the endpoint with a sample input.
+```python
+response = runtime.invoke_endpoint(
+    EndpointName=latest_endpoint_name,
+    ContentType='image/jpeg',
+    Body=byte_array_of_image  
+)
 
-**TODO** Remember to provide a screenshot of the deployed active endpoint in Sagemaker.
+```
 
-## Standout Suggestions
+Deployed Realtime Endpoint
+
+![alt-deployed-endpoint](./images/endpoint.png)
+
+## Suggested Improvements (Unimplemented)
 
 1. Stop training early when performance on validation dataset worsens. 
 2. Implement ResNet-50 CNN to take advantage of higher capacity to learn intricate parterns and yeild a higher accuracy. However this model would require more computation resources. 
 3. Perform manual data cleaning of the images to ensure the dog face is always centred. Images with artificial artifacts like timestamps should be cropped accordingly.
 
-**TODO (Optional):** This is where you can provide information about any standout suggestions that you have attempted.
