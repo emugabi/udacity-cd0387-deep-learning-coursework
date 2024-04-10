@@ -141,25 +141,28 @@ def create_data_loaders(data, batch_size):
     train_path = os.path.join(data, 'train')
     test_path = os.path.join(data, 'test')
     validation_path = os.path.join(data, 'valid')
+
+    #Based on the mean and standard deviation of the red, green, and blue channels across the entire ImageNet dataset (https://discuss.pytorch.org/t/discussion-why-normalise-according-to-imagenet-mean-and-std-dev-for-transfer-learning/115670/2)
+    standardNormalisation = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     
     data_transforms = {
         'train': transforms.Compose([
             transforms.RandomResizedCrop(224),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            standardNormalisation
         ]),
         'valid': transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            standardNormalisation
         ]),
         'test': transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            standardNormalisation
         ])
     }
 
